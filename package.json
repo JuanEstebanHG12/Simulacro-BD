@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev" : "node ./src/server.js"
+    "dev": "node ./src/server.js"
   },
   "repository": {
     "type": "git",
@@ -20,8 +20,10 @@
   },
   "homepage": "https://github.com/JuanEstebanHG12/Simulacro-BD#readme",
   "dependencies": {
+    "csv-parser": "^3.2.0",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "fs": "^0.0.1-security",
     "pg": "^8.18.0"
   }
 }
