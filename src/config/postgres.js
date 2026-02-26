@@ -3,6 +3,7 @@ import { env } from "./env.js";
 
 import fs from 'fs';
 import csv from 'csv-parser';
+import { PatientHistory } from '../models/patien_historial.js';
 
 const { Pool } = pg;
 
@@ -138,9 +139,9 @@ async function insertData() {
         await client.query("BEGIN");
 
         //insert data into Document_Type
-        /* await client.query(`
-            INSERT INTO "Document_Type" ("name") VALUES ('CC'), ('CE'), ('TI'), ('PA')
-        `); */
+        await client.query(`
+            INSERT INTO "Document_Type" ("name") VALUES ('CC'), ('CE'), ('TI'), ('PA');
+        `); 
 
         const docType = await client.query(
             `SELECT id FROM "Document_Type" WHERE name = $1`,
@@ -239,6 +240,31 @@ async function insertData() {
                 INSERT INTO "Appointment" ("code", "appointment_date", "patient_id", "doctor_id", "treatment_code", "amount_paid") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
             `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid])
 
+            await PatientHistory.findOneAndUpdate(
+                { patientEmail: row.patient_email },
+                {
+                    $setOnInsert: {
+                        patientEmail: row.patient_email,
+                        patientName: row.patient_name
+                    },
+                    $push: {
+                        appointments: {
+                            appointmentId: row.appointment_id,
+                            date: row.appointment_date,
+                            doctorName: row.doctor_name,
+                            doctorEmail: row.doctor_email,
+                            specialty: row.specialty,
+                            treatmentCode: row.treatment_code,
+                            treatmentDescription: row.treatment_description,
+                            treatmentCost: row.treatment_cost,
+                            insuranceProvider: row.insurance_provider,
+                            coveragePercentage: row.coverage_percentage,
+                            amountPaid: row.amount_paid
+                        }
+                    }
+                },
+                { upsert: true }
+            );
         }
         await client.query('COMMIT')
 

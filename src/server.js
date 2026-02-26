@@ -1,19 +1,21 @@
 import { createTables, insertData } from './config/postgres.js'
 import app from './app.js'
 import { env } from './config/env.js'
+import { connectMongoDB } from './config/mongoDB.js';
 
 
 try {
-    app.get('/init-db', async (req, res)=>{
+    app.get('/init-db', async (req, res) => {
         try {
             await createTables();
             await insertData();
-            res.status(200).json({response : true , message : "Tables created successfylly"})
+            res.status(200).json({ response: true, message: "Tables created successfylly" })
         } catch (error) {
             console.log(error);
             res.status(500)
         }
     })
+    await connectMongoDB();
     console.log('Conecting to PostgresSQL...');
     /*await createTables();
     console.log('Successfully'); */
