@@ -12,7 +12,8 @@ const appointmentSchema = new mongoose.Schema({
     "insuranceProvider": String,
     "coveragePercentage": Number,
     "amountPaid": Number
-})
+},{ _id: false } // quitar el id automatico de mongoDB
+)
 
 const patientHistorialSchema = new mongoose.Schema({
     "patientEmail": String,

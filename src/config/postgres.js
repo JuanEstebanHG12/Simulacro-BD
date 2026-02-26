@@ -144,7 +144,7 @@ async function insertData() {
             ON CONFLICT ("name")
             DO UPDATE SET
                 name = EXCLUDED.name;
-        `); 
+        `);
 
         const docType = await client.query(
             `SELECT id FROM "Document_Type" WHERE name = $1`,
@@ -162,8 +162,15 @@ async function insertData() {
                 .on("error", reject);
         });
 
+        const counters = {
+            patients: 0,
+            doctors: 0,
+            insurances: 0,
+            appointments: 0,
+            histories: 0
+        };
         for (const row of result) {
-            
+
             const patient = await client.query(`
                 INSERT INTO "Patient" 
                 ("document_number", "document_type_id", "email", "name", "phone", "address")
@@ -173,7 +180,7 @@ async function insertData() {
                     name = EXCLUDED.name,
                     phone = EXCLUDED.phone,
                     address = EXCLUDED.address
-                RETURNING id
+                RETURNING id,xmax
             `, [
                 Math.floor(Math.random() * 100000000),
                 documentTypeId,
@@ -202,7 +209,7 @@ async function insertData() {
                 DO UPDATE SET
                     name = EXCLUDED.name,
                     specialty_id = EXCLUDED.specialty_id
-                RETURNING id
+                RETURNING id, xmax
             `, [
                 row.doctor_name,
                 row.doctor_email,
@@ -217,7 +224,7 @@ async function insertData() {
                 VALUES ($1, $2)
                 ON CONFLICT ("name")
                 DO UPDATE SET coverage_percentage = EXCLUDED.coverage_percentage
-                RETURNING id
+                RETURNING id, xmax
             `, [row.insurance_provider, row.coverage_percentage]);
 
             //insert data into Treatment
@@ -245,8 +252,16 @@ async function insertData() {
                 ON CONFLICT ("code")
                 DO UPDATE SET
                     code = EXCLUDED.code
-                RETURNING id
+                RETURNING id, xmax;
             `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid])
+            
+            //En la query, retrorno tambien xmax si este valor es === 0 es porque con el ON CONFLICT se creo si es diferente, es porque se actualizó, entonces si se creó... sumo
+            if (appointment.rows[0].xmax === '0') counters.appointments++
+            if (patient.rows[0].xmax === '0') counters.patients++
+            if (doctor.rows[0].xmax === '0') counters.doctors++
+            if (insurance.rows[0].xmax === '0') counters.insurances++
+
+            
 
             await PatientHistory.findOneAndUpdate(
                 { patientEmail: row.patient_email },
@@ -275,6 +290,7 @@ async function insertData() {
             );
         }
         await client.query('COMMIT')
+        return counters
 
     } catch (error) {
         console.error("Error inserting data", error);

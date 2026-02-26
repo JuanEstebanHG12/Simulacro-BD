@@ -1,16 +1,38 @@
 import express from 'express'
-import { createTables, insertData } from './config/postgres.js'
+import { insertData } from './config/postgres.js'
 
 const app = express()
 
-app.get('/init-db', async (req, res) => {
+app.post('/api/simulacro/migrate', async (req, res) => {
     try {
-        await createTables();
-        await insertData();
-        res.status(200).json({ response: true, message: "Tables created successfylly" })
+        console.log("Starting migration...");
+
+        const r = await insertData();
+        console.log(r);
+        
+
+        res.status(200).json({
+            success: true,
+            message: {
+                "ok": true,
+                "message": "Migration completed successfully",
+                "result": {
+                    "patients": r.patients,
+                    "doctors": r.doctors,
+                    "insurances": r.insurances,
+                    "appointments": r.appointments,
+                    "histories": r.histories,
+                    "csvPath": "./simulacro_saludplus_data.csv"
+                }
+            }
+        });
+
     } catch (error) {
-        console.log(error);
-        res.status(500)
+        console.error("Migration error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Migration failed"
+        });
     }
 })
 
