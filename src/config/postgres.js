@@ -140,7 +140,10 @@ async function insertData() {
 
         //insert data into Document_Type
         await client.query(`
-            INSERT INTO "Document_Type" ("name") VALUES ('CC'), ('CE'), ('TI'), ('PA');
+            INSERT INTO "Document_Type" ("name") VALUES ('CC'), ('CE'), ('TI'), ('PA')
+            ON CONFLICT ("name")
+            DO UPDATE SET
+                name = EXCLUDED.name;
         `); 
 
         const docType = await client.query(
@@ -160,6 +163,7 @@ async function insertData() {
         });
 
         for (const row of result) {
+            
             const patient = await client.query(`
                 INSERT INTO "Patient" 
                 ("document_number", "document_type_id", "email", "name", "phone", "address")
@@ -237,7 +241,11 @@ async function insertData() {
             const treatmentId = treatment.rows[0].code;
             //insert data into Appointment
             const appointment = await client.query(`
-                INSERT INTO "Appointment" ("code", "appointment_date", "patient_id", "doctor_id", "treatment_code", "amount_paid") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id
+                INSERT INTO "Appointment" ("code", "appointment_date", "patient_id", "doctor_id", "treatment_code", "amount_paid") VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT ("code")
+                DO UPDATE SET
+                    code = EXCLUDED.code
+                RETURNING id
             `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid])
 
             await PatientHistory.findOneAndUpdate(
