@@ -13,6 +13,10 @@ try {
     await createTables()
     app.listen(env.port, () => {
         console.log(`server running on port ${env.port}`);
+        console.log(`Endpoint disponibles:`);
+        console.log(`http://localhost:${env.port}/api/patients/:email/history`);
+        
+        
     })
 
 } catch (error) {

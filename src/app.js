@@ -2,6 +2,8 @@ import express from 'express'
 import { insertData } from './config/postgres.js'
 import doctorsRoutes from './routes/doctors.js'
 import reportsRoutes from './routes/reports.js'
+import patientsRoutes from './routes/patients.js'
+
 import { getDoctorById, getDoctors, updateDoctor } from './services/doctorsServices.js';
 
 const app = express()
@@ -9,8 +11,9 @@ const app = express()
 app.use(express.json())
 
 
-app.use('/api/doctors', doctorsRoutes)
+app.use('/api/doctors', doctorsRoutes) //http://localhost:3000/api/doctor/:id
 app.use('/api/reports', reportsRoutes)
+app.use('/api/patients', patientsRoutes)
 
 //Migrate Endpoint
 app.post('/api/simulacro/migrate', async (req, res) => {
