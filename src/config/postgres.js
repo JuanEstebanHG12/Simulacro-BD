@@ -89,11 +89,7 @@ CREATE TABLE IF NOT EXISTS "Insurance" (
     "code" VARCHAR(20) NOT NULL UNIQUE,
     "treatment_description" VARCHAR(255) NOT NULL,
     "treatment_cost" DECIMAL(10,2) NOT NULL,
-    "insurance_id" INTEGER NOT NULL,
-    PRIMARY KEY("id"),
-    CONSTRAINT fk_treatment_insurance FOREIGN KEY ("insurance_id")
-        REFERENCES "Insurance"("id")
-        ON UPDATE NO ACTION ON DELETE NO ACTION
+    PRIMARY KEY("id")
 );
             `
         )
@@ -107,6 +103,7 @@ CREATE TABLE IF NOT EXISTS "Insurance" (
     "doctor_id" INTEGER NOT NULL,
     "treatment_code" VARCHAR(20) NOT NULL,
     "amount_paid" DECIMAL(10,2) NOT NULL,
+    "insurance_id" INTEGER NOT NULL,
     PRIMARY KEY("id"),
     CONSTRAINT fk_appointment_patient FOREIGN KEY ("patient_id")
         REFERENCES "Patient"("id")
@@ -116,6 +113,9 @@ CREATE TABLE IF NOT EXISTS "Insurance" (
         ON UPDATE NO ACTION ON DELETE NO ACTION,
     CONSTRAINT fk_appointment_treatment FOREIGN KEY ("treatment_code")
         REFERENCES "Treatment"("code")
+        ON UPDATE NO ACTION ON DELETE NO ACTION,
+    CONSTRAINT fk_appointment_insurance FOREIGN KEY ("insurance_id")
+        REFERENCES "Insurance"("id")
         ON UPDATE NO ACTION ON DELETE NO ACTION
 );
             `
@@ -230,30 +230,29 @@ async function insertData() {
             //insert data into Treatment
             const treatment = await client.query(`
                 INSERT INTO "Treatment"
-                ("code", "treatment_description", "treatment_cost", "insurance_id")
-                VALUES ($1, $2, $3, $4)
+                ("code", "treatment_description", "treatment_cost")
+                VALUES ($1, $2, $3)
                 ON CONFLICT ("code")
                 DO UPDATE SET
                     treatment_description = EXCLUDED.treatment_description,
-                    treatment_cost = EXCLUDED.treatment_cost,
-                    insurance_id = EXCLUDED.insurance_id
-                RETURNING code
+                    treatment_cost = EXCLUDED.treatment_cost
+                RETURNING code;
             `, [
                 row.treatment_code?.trim(),
                 row.treatment_description?.trim(),
                 row.treatment_cost,
-                insurance.rows[0].id
             ]);
 
             const treatmentId = treatment.rows[0].code;
             //insert data into Appointment
             const appointment = await client.query(`
-                INSERT INTO "Appointment" ("code", "appointment_date", "patient_id", "doctor_id", "treatment_code", "amount_paid") VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO "Appointment" ("code", "appointment_date", "patient_id", "doctor_id", "treatment_code", "amount_paid", "insurance_id") VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT ("code")
                 DO UPDATE SET
-                    code = EXCLUDED.code
+                    code = EXCLUDED.code,
+                    insurance_id = EXCLUDED.insurance_id
                 RETURNING id, xmax;
-            `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid])
+            `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid, insurance.rows[0].id])
 
             //En la query, retrorno tambien xmax si este valor es === 0 es porque con el ON CONFLICT se creo si es diferente, es porque se actualizó, entonces si se creó... sumo
             if (appointment.rows[0].xmax === '0') counters.appointments++
@@ -262,7 +261,7 @@ async function insertData() {
             if (insurance.rows[0].xmax === '0') counters.insurances++
 
 
-
+            //consultar si el email ya existe
             const existingHistory = await PatientHistory.findOne({
                 patientEmail: row.patient_email
             });
@@ -292,7 +291,7 @@ async function insertData() {
                 },
                 { upsert: true }
             );
-            if (!existingHistory) counters.histories++;
+            if (!existingHistory) counters.histories++; //si no existe, suma a historias
         }
         await client.query('COMMIT')
         return counters
