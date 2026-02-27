@@ -24,6 +24,13 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const doctor = await getDoctorById(req.params.id);
+        if (!doctor) {
+            return res.status(404).json({
+                "ok": false,
+                "error": "Doctor not found"
+            })
+        }
+
         res.status(200).json({
             "ok": true,
             "doctor": {
@@ -49,11 +56,17 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const doctor = await updateDoctor(req.params.id, req.body);
+        if (!doctor) {
+            return res.status(404).json({
+                "ok": false,
+                "message" : "Doctor not found"
+            })
+        }
         res.status(200).json({
             "ok": true,
             "message": "Doctor updated successfully",
             "doctor": doctor
-            });
+        });
     } catch (error) {
         console.error("Doctor error:", error);
         res.status(500).json({

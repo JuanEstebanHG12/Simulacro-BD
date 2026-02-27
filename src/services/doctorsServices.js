@@ -29,7 +29,7 @@ async function updateDoctor(id, data) {
     try {
         const specialty_id = await client.query('SELECT id FROM "Specialty" WHERE name ILIKE $1', [data.specialty])
         
-        const res = await client.query('UPDATE "Doctor" SET name = $1, email = $2, specialty_id = $3 WHERE id = $4 RETURNING *', [data.name, data.email, specialty_id.rows[0].id, id])
+        const res = await client.query('UPDATE "Doctor" SET name = $1, email = $2, specialty_id = $3 WHERE id = $4 RETURNING *', [data.name, data.email, specialty_id.rows[0].id, id])        
         return res.rows[0]
     } catch (error) {
         console.log(error);
