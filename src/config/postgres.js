@@ -254,15 +254,19 @@ async function insertData() {
                     code = EXCLUDED.code
                 RETURNING id, xmax;
             `, [row.appointment_id, row.appointment_date, patient.rows[0].id, doctor.rows[0].id, treatment.rows[0].code, row.amount_paid])
-            
+
             //En la query, retrorno tambien xmax si este valor es === 0 es porque con el ON CONFLICT se creo si es diferente, es porque se actualizó, entonces si se creó... sumo
             if (appointment.rows[0].xmax === '0') counters.appointments++
             if (patient.rows[0].xmax === '0') counters.patients++
             if (doctor.rows[0].xmax === '0') counters.doctors++
             if (insurance.rows[0].xmax === '0') counters.insurances++
 
-            
 
+
+            const existingHistory = await PatientHistory.findOne({
+                patientEmail: row.patient_email
+            });
+            
             await PatientHistory.findOneAndUpdate(
                 { patientEmail: row.patient_email },
                 {
@@ -288,6 +292,7 @@ async function insertData() {
                 },
                 { upsert: true }
             );
+            if (!existingHistory) counters.histories++;
         }
         await client.query('COMMIT')
         return counters
